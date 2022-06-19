@@ -45,18 +45,19 @@ struct ContentView: View {
         }
         .onAppear {
             let messagesURL = URL(string: "https://www.hackingwithswift.com/samples/user-messages.json")!
+            let messagesTask = fetch(messagesURL, defaultValue: [Message]())
 
-            fetch(messagesURL, defaultValue: [Message]()) {
-                messages = $0
+            let favoritesURL = URL(string: "https://www.hackingwithswift.com/samples/user-favorites.json")!
+            let favoritesTask = fetch(favoritesURL, defaultValue: Set<Int>())
+       
+          
+            let combined = Publishers.Zip(messagesTask, favoritesTask)
+            
+            combined.sink { loadedMessages, loadedFavorites in
+                messages = loadedMessages
+                favorites = loadedFavorites
             }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                let favoritesURL = URL(string: "https://www.hackingwithswift.com/samples/user-favorites.json")!
-
-                fetch(favoritesURL, defaultValue: Set<Int>()) {
-                    favorites = $0
-                }
-            }
+            .store(in: &requests)
         }
     }
     
@@ -76,6 +77,7 @@ struct ContentView: View {
         let decoder = JSONDecoder()
 
         return URLSession.shared.dataTaskPublisher(for: url)
+            .delay(for: .seconds(Double.random(in: 1...5)), scheduler: RunLoop.main)  //for time shift demontration only
             .retry(1)
             .map(\.data)
             .decode(type: T.self, decoder: decoder)
