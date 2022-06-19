@@ -86,6 +86,42 @@ struct ContentView: View {
             .eraseToAnyPublisher()
     }
     
+    func basicAuthTrip(didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if challenge.previousFailureCount < 3 {
+            let credential = URLCredential(user: "bbbb", password: "BBBB", persistence: .forSession)
+            completionHandler(.useCredential, credential)
+        } else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        }
+    }
+
+    func digestAuthTrip(didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if challenge.previousFailureCount < 3 {
+            let credential = URLCredential(user: "dddd", password: "DDDD", persistence: .forSession)
+            completionHandler(.useCredential, credential)
+        } else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+
+        // Look for specific authentication challenges and dispatch those to various helper methods.
+        //
+        // IMPORTANT: It's critical that, if you get a challenge you weren't expecting,
+        // you resolve that challenge with `.performDefaultHandling`.
+
+        switch (challenge.protectionSpace.authenticationMethod, challenge.protectionSpace.host) {
+            case (NSURLAuthenticationMethodHTTPBasic, "httpbin.org"):
+                self.basicAuthTrip(didReceive: challenge, completionHandler: completionHandler)
+            case (NSURLAuthenticationMethodHTTPDigest, "httpbin.org"):
+                self.digestAuthTrip(didReceive: challenge, completionHandler: completionHandler)
+            default:
+                completionHandler(.performDefaultHandling, nil)
+        }
+    }
+    
+    
 }
 
 struct ContentView_Previews: PreviewProvider {
